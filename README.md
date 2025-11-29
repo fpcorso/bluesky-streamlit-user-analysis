@@ -10,6 +10,13 @@ The app is built using [Streamlit](https://streamlit.io/). You can install depen
 pip install -r requirements.txt
 ```
 
+The app requires login credentials for a Bluesky app to perform the API queries. Create a .streamlit/secrets.toml file and add the following:
+
+```toml
+bluesky_login="YOUR_LOGIN"
+bluesky_password="YOUR_PASS"
+```
+
 Then, run streamlit:
 
 ```

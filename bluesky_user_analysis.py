@@ -56,7 +56,7 @@ def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
             'uri': post.post.uri,
             'author': post.post.author.handle,
             'posted_date': datetime.strptime(post.post.indexed_at, '%Y-%m-%dT%H:%M:%S.%fZ'),
-            'reposted_date': datetime.strptime(post.reason.indexed_at, '%Y-%m-%dT%H:%M:%S.%fZ') if post.reason else False,
+            'reposted_date': datetime.strptime(post.reason.indexed_at, '%Y-%m-%dT%H:%M:%S.%fZ') if post.reason else None,
             'text': post.post.record.text,
             'likes': post.post.like_count,
             'replies': post.post.reply_count,
@@ -90,12 +90,19 @@ def get_total_posts_per_day_df(posts_df: pd.DataFrame, return_total_reposts: boo
         return pd.DataFrame()
 
     if return_total_reposts:
-        user_posts_df = posts_df[(posts_df['is_repost']) & (posts_df['reposted_date'])].copy()
+        user_posts_df = posts_df[(posts_df['is_repost']) & ~(posts_df['reposted_date'].isna())].copy()
     else:
         user_posts_df = posts_df[~(posts_df['is_repost'])].copy()
+    
+    # If we have 0 entries after filtering, return empty DataFrame.
+    if len(user_posts_df) == 0:
+        return pd.DataFrame()
+
+    # Create new DataFrame with dates and totals.
     data_df = pd.DataFrame.from_dict(get_total_posts_per_day(user_posts_df, return_total_reposts), orient='index')
 
     # Fill in dates that we haven't posted on
+    print(data_df.index.min(), data_df.index.max())
     full_range = pd.date_range(start=data_df.index.min(), end=data_df.index.max())
     return data_df.reindex(full_range, fill_value=0).reset_index().rename(columns={'index': 'date', 0:'posts_per_day'})
 
@@ -222,7 +229,7 @@ else:
             reposts_per_day_df = get_total_posts_per_day_df(data_df, True)
             tags = get_most_used_tags(user_input)
             most_interacted_with = get_most_interacted(user_input)
-    except (BadRequestError, InvokeTimeoutError) as e:
+    except (BadRequestError, InvokeTimeoutError, ValueError) as e:
         print(e)
         st.error("Analyzing failed. Please try again.")
         st.stop()
@@ -252,7 +259,10 @@ else:
 
     st.subheader('Posts per day')
     st.markdown('Includes posts and replies')
-    st.line_chart(posts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Posts per day')
+    if len(posts_per_day_df) == 0:
+        st.info("You have not posted anything yet.")
+    else:
+        st.line_chart(posts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Posts per day')
 
     column1, column2 = st.columns(2)
     with column1:
@@ -266,10 +276,13 @@ else:
     with column2:
         st.subheader("Words you use the most")
         st.markdown("These are the words you use the most in your posts and replies")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(get_wordcloud_for_posts(user_input, data_df[~(data_df['is_repost'])]['text']), interpolation="bilinear")
-        ax.axis("off")
-        st.pyplot(fig)
+        if len(posts_per_day_df) == 0:
+            st.info("You have not posted anything yet.")
+        else:
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(get_wordcloud_for_posts(user_input, data_df[~(data_df['is_repost'])]['text']), interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
     
     st.subheader('Your top posts')
     st.markdown('Your posts that received the most likes and replies')
@@ -307,14 +320,20 @@ else:
     interactions_analysis_column_1, interactions_analysis_column_2 = st.columns(2)
     with interactions_analysis_column_1:
         st.subheader('Reposts per day')
-        st.line_chart(reposts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Reposts per day')
+        if len(reposts_per_day_df) == 0:
+            st.info("You have not reposted anything yet.")
+        else:
+            st.line_chart(reposts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Reposts per day')
     with interactions_analysis_column_2:
         st.subheader("Topics of reposts")
         st.markdown("These are the words used the most in posts that you repost")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
-        ax.axis("off")
-        st.pyplot(fig)
+        if len(reposts_per_day_df) == 0:
+            st.info("You have not reposted anything yet.")
+        else:
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
 
 st.divider()
 st.markdown("Thanks for checking out my Streamlit app! If you have any feedback or questions, feel free to reach out [on my website](https://frankcorso.me) or [on Bluesky](https://bsky.app/profile/fpcorso.bsky.social).")

@@ -43,11 +43,15 @@ def get_posts_from_handle(handle: str) -> list:
         total_pages += 1
     return posts
 
+@st.cache_data
 def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
     """Gets the posts from ATProto API for user by handle and flattens them into a DataFrame."""
     posts = []
     raw_posts = get_posts_from_handle(handle)
     for post in raw_posts:
+        main_image = None
+        if post.post.embed and hasattr(post.post.embed, 'images'):
+            main_image = post.post.embed.images[0].fullsize
         posts.append({
             'uri': post.post.uri,
             'author': post.post.author.handle,
@@ -58,7 +62,8 @@ def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
             'replies': post.post.reply_count,
             'is_repost': True if post.reason else False,
             'is_reply': True if post.reply else False,
-            'engagements': post.post.like_count + post.post.reply_count
+            'engagements': post.post.like_count + post.post.reply_count,
+            'main_image': main_image
         })
     return pd.DataFrame.from_records(posts)
 
@@ -268,13 +273,16 @@ else:
     
     st.subheader('Your top posts')
     st.markdown('Your posts that received the most likes and replies')
-    for i, row in data_df[~(data_df['is_repost'])].sort_values(by='engagements', ascending=False)[:3].iterrows():
-        with st.container(border=True):
-            st.markdown(row['text'])
-            st.caption(f"Posted on {row['posted_date'].date()}")
-            uri_parts = row['uri'][5:].split('/')
-            if len(uri_parts) == 3:
-                st.markdown(f"[View on Bluesky](https://bsky.app/profile/{uri_parts[0]}/post/{uri_parts[2]})")
+    with st.container(horizontal=True):
+        for i, row in data_df[~(data_df['is_repost'])].sort_values(by='engagements', ascending=False)[:3].iterrows():
+            with st.container(border=True):
+                st.markdown(row['text'])
+                if row['main_image']:
+                    st.image(row['main_image'])
+                st.caption(f"Posted on {row['posted_date'].date()}")
+                uri_parts = row['uri'][5:].split('/')
+                if len(uri_parts) == 3:
+                    st.markdown(f"[View on Bluesky](https://bsky.app/profile/{uri_parts[0]}/post/{uri_parts[2]})")
 
     st.divider()
     st.header("A look at those around you")

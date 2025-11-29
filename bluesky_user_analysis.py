@@ -74,13 +74,16 @@ def get_total_posts_per_day(posts_df: pd.DataFrame) -> dict:
     return totals
 
 
-def get_total_posts_per_day_df(posts_df: pd.DataFrame):
+def get_total_posts_per_day_df(posts_df: pd.DataFrame, return_total_reposts: bool = False):
     """Create DataFrame of all dates with total number of posts posted on the date, not including reposts."""
     # Return empty DataFrame if we have 0 posts.
     if len(posts_df) == 0:
         return pd.DataFrame()
 
-    user_posts_df = posts_df[~(posts_df['is_repost'])].copy()
+    if return_total_reposts:
+        user_posts_df = posts_df[(posts_df['is_repost'])].copy()
+    else:
+        user_posts_df = posts_df[~(posts_df['is_repost'])].copy()
     data_df = pd.DataFrame.from_dict(get_total_posts_per_day(user_posts_df), orient='index')
 
     # Fill in dates that we haven't posted on
@@ -207,6 +210,7 @@ else:
     try:
         with st.spinner(text="Analyzing your posts..."):
             posts_per_day_df = get_total_posts_per_day_df(data_df)
+            reposts_per_day_df = get_total_posts_per_day_df(data_df, True)
             tags = get_most_used_tags(user_input)
             most_interacted_with = get_most_interacted(user_input)
     except (BadRequestError, InvokeTimeoutError) as e:
@@ -270,18 +274,29 @@ else:
 
     st.divider()
     st.header("A look at those around you")
-    column1, column2 = st.columns(2)
-    with column1:
-        st.subheader("People you interact with the most")
-        st.markdown("These are the people you repost or reply to the most")
-        for interacted_with in most_interacted_with:
+    st.subheader("People you interact with the most")
+    st.markdown("These are the people you repost or reply to the most")
+    interactions_column_1, interactions_column_2 = st.columns(2)
+    with interactions_column_1:
+        for interacted_with in most_interacted_with[:5]:
             interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
             with interaction_column_1:
                 st.image(interacted_with['avatar'])
             with interaction_column_2:
                 st.markdown(interacted_with['handle'])
-        
-    with column2:
+    with interactions_column_2:
+        for interacted_with in most_interacted_with[5:]:
+            interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
+            with interaction_column_1:
+                st.image(interacted_with['avatar'])
+            with interaction_column_2:
+                st.markdown(interacted_with['handle'])
+    
+    interactions_analysis_column_1, interactions_analysis_column_2 = st.columns(2)
+    with interactions_analysis_column_1:
+        st.subheader('Reposts per day')
+        st.line_chart(reposts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Reposts per day')
+    with interactions_analysis_column_2:
         st.subheader("Topics of reposts")
         st.markdown("These are the words used the most in posts that you repost")
         fig, ax = plt.subplots(figsize=(10, 5))

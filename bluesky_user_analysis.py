@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import nltk
 from nltk.probability import FreqDist
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -10,6 +11,10 @@ from atproto_client.exceptions import BadRequestError, InvokeTimeoutError
 from datetime import datetime
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+
+# Make sure nltk data is downloaded
+nltk.download('punkt_tab')
+nltk.download('stopwords')
 
 client = Client()
 client.login(st.secrets["bluesky_login"], st.secrets["bluesky_password"])

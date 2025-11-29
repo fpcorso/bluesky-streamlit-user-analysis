@@ -2,6 +2,8 @@
 
 Example streamlit app that performs some analysis on a given Bluesky user. Built while exploring ATProto (what Bluesky runs on) and decided to publish it in case someone else may find it useful.
 
+Deployed to Streamlit Community Cloud here: https://bluesky-user-analysis.streamlit.app/
+
 ## Using
 
 The app is built using [Streamlit](https://streamlit.io/). You can install dependencies using the `requirements.txt` file:

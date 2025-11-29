@@ -52,6 +52,7 @@ def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
             'uri': post.post.uri,
             'author': post.post.author.handle,
             'posted_date': datetime.strptime(post.post.indexed_at, '%Y-%m-%dT%H:%M:%S.%fZ'),
+            'reposted_date': datetime.strptime(post.reason.indexed_at, '%Y-%m-%dT%H:%M:%S.%fZ') if post.reason else False,
             'text': post.post.record.text,
             'likes': post.post.like_count,
             'replies': post.post.reply_count,
@@ -62,11 +63,14 @@ def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
     return pd.DataFrame.from_records(posts)
 
 
-def get_total_posts_per_day(posts_df: pd.DataFrame) -> dict:
+def get_total_posts_per_day(posts_df: pd.DataFrame, return_total_reposts: bool = False) -> dict:
     """Get counts of posts per day."""
     totals = {}
     for i, row in posts_df.iterrows():
-        date_string = row['posted_date'].date()
+        if return_total_reposts:
+            date_string = row['reposted_date'].date()
+        else:
+            date_string = row['posted_date'].date()
         if date_string not in totals.keys():
             totals[date_string] = 1
         else:
@@ -81,10 +85,10 @@ def get_total_posts_per_day_df(posts_df: pd.DataFrame, return_total_reposts: boo
         return pd.DataFrame()
 
     if return_total_reposts:
-        user_posts_df = posts_df[(posts_df['is_repost'])].copy()
+        user_posts_df = posts_df[(posts_df['is_repost']) & (posts_df['reposted_date'])].copy()
     else:
         user_posts_df = posts_df[~(posts_df['is_repost'])].copy()
-    data_df = pd.DataFrame.from_dict(get_total_posts_per_day(user_posts_df), orient='index')
+    data_df = pd.DataFrame.from_dict(get_total_posts_per_day(user_posts_df, return_total_reposts), orient='index')
 
     # Fill in dates that we haven't posted on
     full_range = pd.date_range(start=data_df.index.min(), end=data_df.index.max())

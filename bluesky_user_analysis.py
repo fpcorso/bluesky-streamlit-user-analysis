@@ -306,7 +306,7 @@ else:
             st.pyplot(fig)
     
     st.subheader('Your top posts')
-    st.markdown('Your posts that received the most likes and replies')
+    st.markdown('Your posts that received the most engagement (likes, replies, & reposts)')
     with st.container(horizontal=True):
         for i, row in data_df[~(data_df['is_repost'])].sort_values(by='engagements', ascending=False)[:3].iterrows():
             with st.container(border=True):

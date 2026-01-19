@@ -8,7 +8,7 @@ import re
 import string
 from atproto import Client
 from atproto_client.exceptions import BadRequestError, InvokeTimeoutError
-from datetime import datetime
+from datetime import datetime, timedelta
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
@@ -27,6 +27,9 @@ st.set_page_config(
 
 def get_did_from_handle(handle: str) -> str:
     return client.resolve_handle(handle).did
+
+def get_profile_from_handle(handle: str):
+    return client.get_profile(actor=get_did_from_handle(handle))
 
 @st.cache_resource
 def get_posts_from_handle(handle: str) -> list:
@@ -65,9 +68,11 @@ def get_posts_df_from_handle(handle: str) -> pd.DataFrame:
             'text': post.post.record.text,
             'likes': post.post.like_count,
             'replies': post.post.reply_count,
+            'reposts': post.post.repost_count,
+            'quote_count': post.post.quote_count,
             'is_repost': True if post.reason else False,
             'is_reply': True if post.reply else False,
-            'engagements': post.post.like_count + post.post.reply_count,
+            'engagements': post.post.like_count + post.post.reply_count + post.post.repost_count + post.post.quote_count,
             'main_image': main_image
         })
     return pd.DataFrame.from_records(posts)
@@ -202,6 +207,16 @@ def get_most_interacted(handle: str) -> list:
     return get_most_interacted_from_posts(get_posts_from_handle(handle), 10)
 
 
+def get_engagement_ratio_for_recent_posts(posts_df: pd.DataFrame, total_followers: int):
+    only_recent_posts = posts_df[(posts_df['posted_date'] > datetime.now() - timedelta(days=30)) & ~(posts_df['is_repost']) & ~(posts_df['is_reply'])]
+    if len(only_recent_posts) == 0:
+        return 0
+    total_engagements = only_recent_posts['engagements'].sum()
+    total_posts = len(only_recent_posts)
+    mean_engagements = total_engagements / total_posts
+    return round(mean_engagements / total_followers, 4)
+
+
 st.title("Bluesky User Analysis")
 st.markdown("Hey there! This Streamlit app analyzes your Bluesky posts (up to your 2,000 most recent posts). I created it while exploring the ATProto (what Bluesky runs on) API and SDKs and thought I'd publish it in case any one else found it interesting.")
 st.markdown("To begin, enter your Bluesky handle. :point_down:")
@@ -216,6 +231,7 @@ else:
     try:
         with st.spinner(text="Loading your posts..."):
             data_df = get_posts_df_from_handle(user_input)
+            profile = get_profile_from_handle(user_input)
     except (BadRequestError, InvokeTimeoutError) as e:
         print(e)
         try:
@@ -304,6 +320,21 @@ else:
 
     st.divider()
     st.header("A look at those around you")
+    with st.container(horizontal=True, horizontal_alignment="distribute"):
+        other_metric_cols = st.columns(2)
+        with other_metric_cols[0]:
+            st.metric(
+                "Total Followers",
+                profile.followers_count,
+            )
+
+        with other_metric_cols[1]:
+            st.metric(
+                "Engagement to Followers Ratio",
+                get_engagement_ratio_for_recent_posts(data_df, profile.followers_count),
+                help="This is the average engagement on recent posts compared to your total followers."
+            )
+            
     st.subheader("People you interact with the most")
     st.markdown("These are the people you repost or reply to the most")
     interactions_column_1, interactions_column_2 = st.columns(2)

@@ -1,3 +1,6 @@
+# IDE
+.idea
+
 # Secrets
 .streamlit/secrets.toml
 

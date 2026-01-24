@@ -278,15 +278,22 @@ else:
                 len(data_df[(data_df['is_repost'])]),
             )
 
-    st.subheader('Posts per day')
-    st.markdown('Includes posts and replies')
-    if len(posts_per_day_df) == 0:
-        st.info("You have not posted anything yet.")
-    else:
-        st.line_chart(posts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Posts per day')
+    posts_day_column_1, posts_day_column_2 = st.columns(2)
+    with posts_day_column_1:
+        st.subheader('Posts per day', help='Includes posts and replies')
+        if len(posts_per_day_df) == 0:
+            st.info("You have not posted anything yet.")
+        else:
+            st.line_chart(posts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Posts per day')
 
-    column1, column2 = st.columns(2)
-    with column1:
+    with posts_day_column_2:
+        st.subheader('Reposts per day')
+        if len(reposts_per_day_df) == 0:
+            st.info("You have not reposted anything yet.")
+        else:
+            st.line_chart(reposts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Reposts per day')
+    post_analysis_columns = st.columns(2)
+    with post_analysis_columns[0]:
         st.subheader("Tags you use the most")
         st.markdown("These are your most used hashtags")
         if len(tags) == 0:
@@ -294,7 +301,7 @@ else:
         else:
             st.bar_chart(tags, y='count', x='tag', sort='-count', horizontal=True)
 
-    with column2:
+    with post_analysis_columns[1]:
         st.subheader("Words you use the most")
         st.markdown("These are the words you use the most in your posts and replies")
         if len(posts_per_day_df) == 0:
@@ -307,8 +314,8 @@ else:
     
     st.subheader('Your top posts')
     st.markdown('Your posts that received the most engagement (likes, replies, & reposts)')
-    with st.container(horizontal=True):
-        for i, row in data_df[~(data_df['is_repost'])].sort_values(by='engagements', ascending=False)[:3].iterrows():
+    with st.container(horizontal=False):
+        for i, row in data_df[~(data_df['is_repost'])].sort_values(by='engagements', ascending=False)[:4].iterrows():
             with st.container(border=True):
                 st.markdown(row['text'])
                 if row['main_image']:
@@ -321,14 +328,20 @@ else:
     st.divider()
     st.header("A look at those around you")
     with st.container(horizontal=True, horizontal_alignment="distribute"):
-        other_metric_cols = st.columns(2)
+        other_metric_cols = st.columns(3)
         with other_metric_cols[0]:
             st.metric(
                 "Total Followers",
                 profile.followers_count,
             )
-
+        
         with other_metric_cols[1]:
+            st.metric(
+                "Total Following",
+                profile.follows_count,
+            )
+
+        with other_metric_cols[2]:
             st.metric(
                 "Engagement to Followers Ratio",
                 get_engagement_ratio_for_recent_posts(data_df, profile.followers_count),
@@ -337,15 +350,15 @@ else:
             
     st.subheader("People you interact with the most")
     st.markdown("These are the people you repost or reply to the most")
-    interactions_column_1, interactions_column_2 = st.columns(2)
-    with interactions_column_1:
+    interactions_columns = st.columns(2)
+    with interactions_columns[0]:
         for interacted_with in most_interacted_with[:5]:
             interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
             with interaction_column_1:
                 st.image(interacted_with['avatar'])
             with interaction_column_2:
                 st.markdown(interacted_with['handle'])
-    with interactions_column_2:
+    with interactions_columns[1]:
         for interacted_with in most_interacted_with[5:]:
             interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
             with interaction_column_1:
@@ -353,23 +366,16 @@ else:
             with interaction_column_2:
                 st.markdown(interacted_with['handle'])
     
-    interactions_analysis_column_1, interactions_analysis_column_2 = st.columns(2)
-    with interactions_analysis_column_1:
-        st.subheader('Reposts per day')
-        if len(reposts_per_day_df) == 0:
-            st.info("You have not reposted anything yet.")
-        else:
-            st.line_chart(reposts_per_day_df, y='posts_per_day', x='date', x_label='Date', y_label='Reposts per day')
-    with interactions_analysis_column_2:
-        st.subheader("Topics of reposts")
-        st.markdown("These are the words used the most in posts that you repost")
-        if len(reposts_per_day_df) == 0:
-            st.info("You have not reposted anything yet.")
-        else:
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
-            ax.axis("off")
-            st.pyplot(fig)
+    st.subheader("Topics of reposts")
+    st.markdown("These are the words used the most in posts that you repost")
+    if len(reposts_per_day_df) == 0:
+        st.info("You have not reposted anything yet.")
+    else:
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
+        ax.axis("off")
+        st.pyplot(fig)
+        
 
 st.divider()
 st.markdown("Thanks for checking out my Streamlit app! If you have any feedback or questions, feel free to reach out [on my website](https://frankcorso.me) or [on Bluesky](https://bsky.app/profile/fpcorso.bsky.social).")

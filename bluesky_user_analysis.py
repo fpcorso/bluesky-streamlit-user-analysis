@@ -222,7 +222,7 @@ st.markdown("Hey there! This Streamlit app analyzes your Bluesky posts (up to yo
 st.markdown("To begin, enter your Bluesky handle. :point_down:")
 
 user_input = st.text_input(
-    label="Input your Bluesky (ATProto) handle (e.g. fpcorso.bsky.social)",
+    label="Input your Bluesky (ATProto) handle (e.g. frankcorso.me, hankgreen.bsky.social, jcsalterego.bsky.social)",
     value=""
 )
 if not user_input:
@@ -348,33 +348,36 @@ else:
                 help="This is the average engagement on recent posts compared to your total followers."
             )
             
-    st.subheader("People you interact with the most")
-    st.markdown("These are the people you repost or reply to the most")
-    interactions_columns = st.columns(2)
-    with interactions_columns[0]:
-        for interacted_with in most_interacted_with[:5]:
-            interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
-            with interaction_column_1:
-                st.image(interacted_with['avatar'])
-            with interaction_column_2:
-                st.markdown(interacted_with['handle'])
-    with interactions_columns[1]:
-        for interacted_with in most_interacted_with[5:]:
-            interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
-            with interaction_column_1:
-                st.image(interacted_with['avatar'])
-            with interaction_column_2:
-                st.markdown(interacted_with['handle'])
+    people_around_you_columns = st.columns(2)
+    with people_around_you_columns[0]:
+        st.subheader("People you interact with the most")
+        st.markdown("These are the people you repost or reply to the most")
+        interactions_columns = st.columns(2)
+        with interactions_columns[0]:
+            for interacted_with in most_interacted_with[:5]:
+                interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
+                with interaction_column_1:
+                    st.image(interacted_with['avatar'])
+                with interaction_column_2:
+                    st.markdown(interacted_with['handle'])
+        with interactions_columns[1]:
+            for interacted_with in most_interacted_with[5:]:
+                interaction_column_space, interaction_column_1, interaction_column_2 = st.columns((0.1, 0.5, 2))
+                with interaction_column_1:
+                    st.image(interacted_with['avatar'])
+                with interaction_column_2:
+                    st.markdown(interacted_with['handle'])
     
-    st.subheader("Topics of reposts")
-    st.markdown("These are the words used the most in posts that you repost")
-    if len(reposts_per_day_df) == 0:
-        st.info("You have not reposted anything yet.")
-    else:
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
-        ax.axis("off")
-        st.pyplot(fig)
+    with people_around_you_columns[1]:
+        st.subheader("Topics of reposts")
+        st.markdown("These are the words used the most in posts that you repost")
+        if len(reposts_per_day_df) == 0:
+            st.info("You have not reposted anything yet.")
+        else:
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(get_wordcloud_for_posts(user_input, data_df[(data_df['is_repost'])]['text']), interpolation="bilinear")
+            ax.axis("off")
+            st.pyplot(fig)
         
 
 st.divider()

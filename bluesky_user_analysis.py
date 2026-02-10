@@ -381,4 +381,4 @@ else:
         
 
 st.divider()
-st.markdown("Thanks for checking out my Streamlit app! If you have any feedback or questions, feel free to reach out [on my website](https://frankcorso.me) or [on Bluesky](https://bsky.app/profile/fpcorso.bsky.social).")
+st.markdown("Thanks for checking out my Streamlit app! If you have any feedback or questions, feel free to reach out [on my website](https://frankcorso.me) or [on Bluesky](https://bsky.app/profile/frankcorso.me).")
